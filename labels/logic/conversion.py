@@ -1,5 +1,4 @@
 from bson import CodecOptions, SON
-import pprint
 
 translations = None
 
@@ -11,80 +10,43 @@ key_handler = {
 }
 
 
-conditions = [
-    (lambda object, data: object.get('customer') == bool(data.get('customer'))
-     and object.get('free_memory') == bool(data.get('free_memory')))
-]
-
-
-def get_label(mongo, label_type):
+def get_label(mongo, label_type, label_info):
     """Get ZPL code for given label type and label info."""
     global translations
     labels_collection, translations_collection, elements_collection = get_collections(mongo)
     stored_label, translations, stored_elements = get_db_info(labels_collection, translations_collection, elements_collection, label_type)
 
-    data = {
-        'product': 'Aquaris X',
-        'color': 'black',
-        'serial_number': 'AA123456',
-        'free_memory': True,
-        'free_memory_lines': 1,
-        'customer': True,
-        'show_charger_info': True,
-        'charger_info_lines': 2
-    }
-
     label_elements_names = stored_label.get('content')
 
-    converted_elements = [get_element(data, stored_elements, element_name) for element_name in label_elements_names]
+    converted_elements = [get_element(label_info, stored_elements, element_name) for element_name in label_elements_names]
     converted_elements = [element for element in converted_elements if element]
 
     stored_label['content'] = converted_elements
-    # pprint.pprint(stored_label)
-    # pprint.pprint(converted_elements)
-    # bq_ean_barcode_condition = (lambda object, data:
-    #                             object.get('customer') == bool(data.get('customer'))
-    #                             and object.get('free_memory') == bool(data.get('free_memory')))
-    #
-    # bq_ean_barcode = labels_collection.find_one(
-    #     {"type": label_type, "element": "bq_ean_barcode"}
-    # )
-    # elements = bq_ean_barcode.get('elements')
-    # element = ([elem for elem in elements if bq_ean_barcode_condition(elem.get('conditions'), data)])
-    # print(element)
-    #
+
     zpl_code = read_object(stored_label)
     zpl_code += get_command('close')
 
     return zpl_code
 
 
-def get_element(label_data, stored_elements, element_name):
-    print("*******************************")
-    print(element_name)
+def get_element(label_info, stored_elements, element_name):
     possible_elements = next(element.get('possible_elements') for element in stored_elements if element.get('element') == element_name)
 
-    chosen_element = next((element for element in possible_elements if check_data(label_data, element)), None)
+    chosen_element = next((element for element in possible_elements if check_data(label_info, element)), None)
     element = chosen_element.get('object') if chosen_element else None
-    if element:
-        element = fill_element(element, label_data.get(element_name))
+    if element and hasattr(label_info, element_name):
+        element = fill_element(element, getattr(label_info, element_name))
 
     return element
 
 
-def check_data(label_data, element):
+def check_data(label_info, element):
+    """Checks if given conditions match label data"""
     conditions = element.get('conditions')
     match = True
     if conditions:
-        # print("----------------------------------")
-        not_matched_element = next((value for key, value in conditions.items() if label_data.get(key) != value), None)
-        print([value for key, value in conditions.items() if label_data.get(key) == value])
+        not_matched_element = next((value for key, value in conditions.items() if getattr(label_info, key) != value), None)
         match = False if not_matched_element else True
-        # print("%s | %s" % (not_matched_element, match))
-        # for key, value in conditions.items():
-        #     match = True if label_data.get(key) == value else False
-        print(match)
-        # print("++++++++++++++++++++++++++++++++++")
 
     return match
 

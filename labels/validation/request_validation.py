@@ -4,8 +4,8 @@ get_label_schema = {
     "properties": {
         "serialNumber": {"type": "string"},
         "exist": {"type": "boolean"},
-        "imei1": {"type": "string"},
-        "imei2": {"type": "string"},
+        "imei1": {"type": ["string", "null"]},
+        "imei2": {"type": ["string", "null"]},
         "pcbSerialNumber": {"type": "string"},
         "tagInfo": {
             "type": "object",
@@ -18,9 +18,9 @@ get_label_schema = {
                 "customerIdType": {"type": ["string", "null"]},
                 "customerIdValue": {"type": ["string", "null"]},
                 "customerName": {"type": ["string", "null"]},
-                "eanBq": {"type": "number"},
-                "eanInLabel": {"type": "boolean"},
-                "eanOutlet": {"type": "number"},
+                "eanBq": {"type": "string"},
+                "eanInLabel": {"type": ["boolean", "null"]},
+                "eanOutlet": {"type": "string"},
                 "freeMemory": {"type": ["string", "null"]},
                 "imeisConfig": {"type": "string"},
                 "labelType": {"type": "string"},
